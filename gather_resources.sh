@@ -5,10 +5,10 @@ data_dir="/data"
 mkdir -p "${data_dir}"
 mkdir -p "models"
 wget -O models/tfidf.pickle https://umd.box.com/s/uxf1gvh6lplh3fxge7huk396h8dcdei3
-wget -O models/new_guesser/.../pytorch_model.bin xxx
-wget -O models/new_guesser/.../config.json yyy
-wget -O new_models/new_guesser/.../pytorch_model.bin aaa
-wget -O new_models/new_guesser/.../config.json zzz
+wget -O models/new_guesser/pytorch_model.bin https://umd.box.com/s/qp3wul7xuk0b6o50unt6sezuzko09ol4
+wget -O models/new_guesser/config.json https://umd.box.com/s/qtkod8uw7ug86gynx712echehq8u4ux9
+wget -O new_models/new_guesser/pytorch_model.bin https://umd.box.com/s/nibdsezr1ktjzuj0snh7pkspyaiaarhm
+wget -O new_models/new_guesser/config.json https://umd.box.com/s/oejt80r2o2avye7d6kz6j6uwpgz3rbkq
 
 
 # Download the full train data
@@ -35,9 +35,9 @@ if [ ! -f "${data_dir}/wiki_lookup.2018.json" ]; then
     echo "Download complete.\n"
 fi
 
-if [ ! -f "${data_dir}/train-v2.0.json" ]; then
-    echo "Downloading SQuAD train-v2.0.json"
-    wget "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
-    mv train-v2.0.json "${data_dir}/train-v2.0.json"
+if [ ! -f "${data_dir}/dev-v2.0.json" ]; then
+    echo "Downloading SQuAD dev-v2.0.json"
+    wget "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
+    mv dev-v2.0.json "${data_dir}/dev-v2.0.json"
     echo "Download complete.\n"
 fi

@@ -148,7 +148,7 @@ class NewGuesser(BaseGuesser):
             ref_texts.append(self.wiki_lookup[page]['text'])
 
         l = len(questions)  # num of questions
-        n = 2  # num of negative samples
+        n = 9  # num of negative samples
         # max_length = 512
         # passage_len = 250     # max len of passage
         k = 1000  # process k at a time
@@ -224,7 +224,7 @@ class NewGuesser(BaseGuesser):
             ref_texts.append(self.wiki_lookup[page]['text'])
 
         l = len(questions)  # num of questions
-        n = 2  # num of negative samples
+        n = 9  # num of negative samples
         # max_length = 512
         # passage_len = 250     # max len of passage
         k = 1000  # process k at a time
@@ -345,27 +345,22 @@ class NewGuesser(BaseGuesser):
         self.model.save_pretrained('models/new_guesser')
 
     def get_sentence_rank(self, sentence, golden_page):
-        n_ref_texts = 256
-        guesses = self.guesser.guess([sentence], max_n_guesses=n_ref_texts)[0]
+        n_ref_texts = 10
+        guesses = self.guesser.guess_wrong([sentence], n_ref_texts)[0]
         ref_texts = []
         for page, score in guesses:
             doc = self.wiki_lookup[page]['text']
             ref_texts.append(doc)
         with torch.no_grad():
-            logits = torch.zeros(n_ref_texts)
-            k = 64
-            for i in tqdm(range((n_ref_texts + k - 1) // k)):
-                inputs_B = ref_texts[i * k:(i + 1) * k]
-                group_len = len(inputs_B)
-                inputs_A = [sentence] * group_len
-                model_inputs = self.tokenizer(
-                    inputs_A, inputs_B, return_token_type_ids=True, padding='max_length', max_length=512,
-                    truncation=True,
-                    add_special_tokens=True,
-                    return_tensors='pt').to(device)
+            inputs_A = [sentence] * n_ref_texts
+            inputs_B = ref_texts
+            model_inputs = self.tokenizer(
+                inputs_A, inputs_B, return_token_type_ids=True, padding='max_length', max_length=512, truncation=True,
+                add_special_tokens=True,
+                return_tensors='pt').to(device)
 
-                model_outputs = self.model(**model_inputs)
-                logits[i * k:i * k + group_len] = model_outputs.logits[:, 1]  # Label 1 means they are similar
+            model_outputs = self.model(**model_inputs)
+            logits = model_outputs.logits[:, 1]  # Label 1 means they are similar
             indices = torch.argsort(logits, dim=-1, descending=True)
             passage_set = set()
             for idx in indices:
@@ -373,18 +368,18 @@ class NewGuesser(BaseGuesser):
                 passage_set.add(passage_page)
                 if passage_page == golden_page:
                     return len(passage_set)
-            return n_ref_texts
+            return 20
 
     @staticmethod
     def update_metrics(metrics: np.array, line_no: int, rank: int):
         # metrics[line_no][0] += 1.0 * rank
         if rank == 1:
             metrics[line_no][1] += 1.0
-        if rank <= 5:
+        if rank <= 3:
             metrics[line_no][2] += 1.0
-        if rank <= 20:
+        if rank <= 5:
             metrics[line_no][3] += 1.0
-        if rank <= 100:
+        if rank <= 10:
             metrics[line_no][4] += 1.0
 
     def test(self):
@@ -405,16 +400,16 @@ class NewGuesser(BaseGuesser):
             print(metrics)
 
         metrics /= num_of_test_questions
-        print('first avg rank: {}'.format(metrics[0][0]))
+        # print('first avg rank: {}'.format(metrics[0][0]))
         print('first top 1: {}'.format(metrics[0][1]))
-        print('first top 5: {}'.format(metrics[0][2]))
-        print('first top 20: {}'.format(metrics[0][3]))
-        print('first top 100: {}'.format(metrics[0][4]))
-        print('last avg rank: {}'.format(metrics[1][0]))
+        print('first top 3: {}'.format(metrics[0][2]))
+        print('first top 5: {}'.format(metrics[0][3]))
+        print('first top 10: {}'.format(metrics[0][4]))
+        # print('last avg rank: {}'.format(metrics[1][0]))
         print('last top 1: {}'.format(metrics[1][1]))
-        print('last top 5: {}'.format(metrics[1][2]))
-        print('last top 20: {}'.format(metrics[1][3]))
-        print('last top 100: {}'.format(metrics[1][4]))
+        print('last top 3: {}'.format(metrics[1][2]))
+        print('last top 5: {}'.format(metrics[1][3]))
+        print('last top 10: {}'.format(metrics[1][4]))
 
     def test_squad(self, questions, pages):
         num_of_test_questions = len(questions)
@@ -431,14 +426,9 @@ class NewGuesser(BaseGuesser):
         metrics /= num_of_test_questions
         # print('first avg rank: {}'.format(metrics[0][0]))
         print('first top 1: {}'.format(metrics[0][1]))
-        print('first top 5: {}'.format(metrics[0][2]))
-        print('first top 20: {}'.format(metrics[0][3]))
-        print('first top 100: {}'.format(metrics[0][4]))
-        # print('last avg rank: {}'.format(metrics[1][0]))
-        print('last top 1: {}'.format(metrics[1][1]))
-        print('last top 5: {}'.format(metrics[1][2]))
-        print('last top 20: {}'.format(metrics[1][3]))
-        print('last top 100: {}'.format(metrics[1][4]))
+        print('first top 3: {}'.format(metrics[0][2]))
+        print('first top 5: {}'.format(metrics[0][3]))
+        print('first top 10: {}'.format(metrics[0][4]))
 
 
 class NewGuesserWithCT(BaseGuesser):
@@ -469,7 +459,7 @@ class NewGuesserWithCT(BaseGuesser):
             ref_texts.append(self.wiki_lookup[page]['text'])
 
         l = len(questions)  # num of questions
-        n = 2  # num of negative samples
+        n = 9  # num of negative samples
         # max_length = 512
         # passage_len = 250     # max len of passage
         k = 1000  # process k at a time
@@ -555,7 +545,7 @@ class NewGuesserWithCT(BaseGuesser):
             ref_texts.append(self.wiki_lookup[page]['text'])
 
         l = len(questions)  # num of questions
-        n = 2  # num of negative samples
+        n = 9  # num of negative samples
         # max_length = 512
         # passage_len = 250       # max len of passage
         k = 1000  # process k at a time
@@ -711,27 +701,22 @@ class NewGuesserWithCT(BaseGuesser):
         self.model.save_pretrained('new_models/new_guesser')
 
     def get_sentence_rank(self, sentence, golden_page):
-        n_ref_texts = 256
-        guesses = self.guesser.guess([sentence], max_n_guesses=n_ref_texts)[0]
+        n_ref_texts = 10
+        guesses = self.guesser.guess_wrong([sentence], n_ref_texts)[0]
         ref_texts = []
         for page, score in guesses:
             doc = self.wiki_lookup[page]['text']
             ref_texts.append(doc)
         with torch.no_grad():
-            logits = torch.zeros(n_ref_texts)
-            k = 64
-            for i in tqdm(range((n_ref_texts + k - 1) // k)):
-                inputs_B = ref_texts[i * k:(i + 1) * k]
-                group_len = len(inputs_B)
-                inputs_A = [sentence] * group_len
-                model_inputs = self.tokenizer(
-                    inputs_A, inputs_B, return_token_type_ids=True, padding='max_length', max_length=512,
-                    truncation=True,
-                    add_special_tokens=True,
-                    return_tensors='pt').to(device)
+            inputs_A = [sentence] * n_ref_texts
+            inputs_B = ref_texts
+            model_inputs = self.tokenizer(
+                inputs_A, inputs_B, return_token_type_ids=True, padding='max_length', max_length=512, truncation=True,
+                add_special_tokens=True,
+                return_tensors='pt').to(device)
 
-                model_outputs = self.model(**model_inputs)
-                logits[i * k:i * k + group_len] = model_outputs.logits[:, 1]  # Label 1 means they are similar
+            model_outputs = self.model(**model_inputs)
+            logits = model_outputs.logits[:, 1]  # Label 1 means they are similar
             indices = torch.argsort(logits, dim=-1, descending=True)
             passage_set = set()
             for idx in indices:
@@ -739,18 +724,18 @@ class NewGuesserWithCT(BaseGuesser):
                 passage_set.add(passage_page)
                 if passage_page == golden_page:
                     return len(passage_set)
-            return n_ref_texts
+            return 20
 
     @staticmethod
     def update_metrics(metrics: np.array, line_no: int, rank: int):
         # metrics[line_no][0] += 1.0 * rank
         if rank == 1:
             metrics[line_no][1] += 1.0
-        if rank <= 5:
+        if rank <= 3:
             metrics[line_no][2] += 1.0
-        if rank <= 20:
+        if rank <= 5:
             metrics[line_no][3] += 1.0
-        if rank <= 100:
+        if rank <= 10:
             metrics[line_no][4] += 1.0
 
     def test(self):
@@ -773,14 +758,14 @@ class NewGuesserWithCT(BaseGuesser):
         metrics /= num_of_test_questions
         # print('first avg rank: {}'.format(metrics[0][0]))
         print('first top 1: {}'.format(metrics[0][1]))
-        print('first top 5: {}'.format(metrics[0][2]))
-        print('first top 20: {}'.format(metrics[0][3]))
-        print('first top 100: {}'.format(metrics[0][4]))
+        print('first top 3: {}'.format(metrics[0][2]))
+        print('first top 5: {}'.format(metrics[0][3]))
+        print('first top 10: {}'.format(metrics[0][4]))
         # print('last avg rank: {}'.format(metrics[1][0]))
         print('last top 1: {}'.format(metrics[1][1]))
-        print('last top 5: {}'.format(metrics[1][2]))
-        print('last top 20: {}'.format(metrics[1][3]))
-        print('last top 100: {}'.format(metrics[1][4]))
+        print('last top 3: {}'.format(metrics[1][2]))
+        print('last top 5: {}'.format(metrics[1][3]))
+        print('last top 10: {}'.format(metrics[1][4]))
 
     def test_squad(self, questions, pages):
         num_of_test_questions = len(questions)
@@ -797,14 +782,9 @@ class NewGuesserWithCT(BaseGuesser):
         metrics /= num_of_test_questions
         # print('first avg rank: {}'.format(metrics[0][0]))
         print('first top 1: {}'.format(metrics[0][1]))
-        print('first top 5: {}'.format(metrics[0][2]))
-        print('first top 20: {}'.format(metrics[0][3]))
-        print('first top 100: {}'.format(metrics[0][4]))
-        # print('last avg rank: {}'.format(metrics[1][0]))
-        print('last top 1: {}'.format(metrics[1][1]))
-        print('last top 5: {}'.format(metrics[1][2]))
-        print('last top 20: {}'.format(metrics[1][3]))
-        print('last top 100: {}'.format(metrics[1][4]))
+        print('first top 3: {}'.format(metrics[0][2]))
+        print('first top 5: {}'.format(metrics[0][3]))
+        print('first top 10: {}'.format(metrics[0][4]))
 
 
 class ReRanker(BaseReRanker):

@@ -42,5 +42,5 @@ from models import NewGuesser, NewGuesserWithCT
 guesser = NewGuesser()
 guesser.passage_texts = candidate_ref_texts
 guesser.answers = candidate_pages
-guesser.load(model_path='models/new_guesser/checkpoint-64000')
+guesser.load(model_path='models/new_guesser')
 guesser.test_squad(questions, pages)
